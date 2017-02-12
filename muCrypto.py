@@ -7,21 +7,22 @@ import codecs
 import os
 
 from keyczar import keyczar
-from nacl import secret
+from nacl import secret, utils, public
 
 
 class SymetricCrypterKcz(object):
     """
-    This class represent a Symetric Crypter by encapsulating
-    keyczar library's Crypter class (expects and uses base64
-    encoded files)
+    This class represents a Symetric Crypter by encapsulating
+    keyczar library's Crypter class. Accepts encodings found in
+    codecs module.
     """
 
-    key_location = r"keys_and_files/ficheros_clave_primaria_keyczar"
+    def __init__(self, key_location):
+        """
+        Instantiates a SymetricCrypterKcz object
 
-    def __init__(self, key_location=None):
-        if key_location is None:
-            key_location = self.key_location
+        :param key_location: Folder containing the keys
+        """
         _assert_is_dir(key_location)
         self.crypt = keyczar.Crypter.Read(key_location)
 
@@ -63,8 +64,7 @@ class SymetricCrypterKcz(object):
         :return: The generated file's content
         """
 
-        with open(input_path, mode="r") as input_buffer:
-            cyphertext = input_buffer.read()
+        cyphertext = read_file(input_path)
 
         decrypted_cyphertext = decode(cyphertext, input_encoding)
 
@@ -72,16 +72,27 @@ class SymetricCrypterKcz(object):
 
         encoded_text = encode(plain_text, output_encoding)
 
-        with open(output_path, mode="wb") as output_buffer:
-            output_buffer.write(encoded_text)
+        write_file(encoded_text, output_path)
         return encoded_text
 
 
 class SymetricCrypterNaCl(object):
-
+    """
+    This class represents a Symetric Crypter by encapsulating
+    pyNaCl library's SecretBox class. Accepts encodings found in
+    codecs module.
+    """
     key_location = r'keys_and_files/texto_descifrado_paso2_keyczar.base64'
 
     def __init__(self, key_location=None, decoder='base64'):
+        """
+        Instantiates a SymetricCrypterNaCl object
+
+        :param key_location: Path to the key's file
+        :type key_location: str
+        :param decoder: The encoding of the key's file
+        :type decoder: str
+        """
         if key_location is None:
             key_location = self.key_location
         key = read_file(key_location)
@@ -101,12 +112,12 @@ class SymetricCrypterNaCl(object):
         :type output_path: str
         :return: The generated file's content
         """
-
         input_str = read_file(input_path)
 
         plain_input = decode(input_str, input_encoding)
 
-        cyphertext = self.crypt.encrypt(plain_input)
+        nonce = utils.random(secret.SecretBox.NONCE_SIZE)
+        cyphertext = self.crypt.encrypt(plain_input, nonce)
         encrypted_cyphertext = encode(cyphertext, output_encoding)
 
         write_file(encrypted_cyphertext, output_path)
@@ -125,17 +136,92 @@ class SymetricCrypterNaCl(object):
         :type output_path: str
         :return: The generated file's content
         """
-        with open(input_path, mode="r") as input_buffer:
-            cyphertext = input_buffer.read()
-
+        cyphertext = read_file(input_path)
         decrypted_cyphertext = decode(cyphertext, input_encoding)
 
         plain_text = self.crypt.decrypt(decrypted_cyphertext)
 
         encoded_text = encode(plain_text, output_encoding)
 
-        with open(output_path, mode="wb") as output_buffer:
-            output_buffer.write(encoded_text)
+        write_file(encoded_text, output_path)
+        return encoded_text
+
+
+class AsymetricCrypterNaCl(object):
+    """
+    This class represents an Asymetric Crypter by encapsulating
+    pyNaCl library's Box class. Accepts encodings found in
+    codecs module.
+    """
+    def __init__(self, priv_k_path, pub_k_path, priv_k_encoding='base64', pub_k_encoding='base64'):
+        """
+        Instantiates an AsymetricCrypterNaCl object. Priv_k_path may be null if only
+        used for encryption and not decryption.
+
+        :param priv_k_path: Path of the file containing the private key
+        :type priv_k_path: str
+        :param pub_k_path: Path of the file containing the public key
+        :type pub_k_path: str
+        :param priv_k_encoding: The encoding of the private key's file
+        :type priv_k_encoding: str
+        :param pub_k_encoding: The encoding of the public key's file
+        :type pub_k_encoding: str
+        """
+        priv_k_str = read_file(priv_k_path)
+        priv_k_str = decode(priv_k_str, priv_k_encoding)
+        priv_k = public.PrivateKey(priv_k_str)
+
+        pub_k_str = read_file(pub_k_path)
+        pub_k_str = decode(pub_k_str, pub_k_encoding)
+        pub_k = public.PublicKey(pub_k_str)
+
+        self.crypt = public.Box(priv_k, pub_k)
+
+    def encrypt(self, input_path, output_path, input_encoding='base64', output_encoding='base64'):
+        """
+        Encrypts the file on the path 'input_path' and places the result in the file
+        'output_path' which will be created if it doesn't exist yet.
+
+        :param output_encoding: The encoding type of the input-file
+        :param input_encoding: The encoding type of the output-file
+        :param input_path: Path of the file to be encrypted
+        :type input_path: str
+        :param output_path: Path to the file the output will be writen to
+        :type output_path: str
+        :return: The generated file's content
+        """
+
+        input_str = read_file(input_path)
+
+        plain_input = decode(input_str, input_encoding)
+
+        nonce = utils.random(secret.SecretBox.NONCE_SIZE)
+        cyphertext = self.crypt.encrypt(plain_input, nonce)
+        encrypted_cyphertext = encode(cyphertext, output_encoding)
+
+        write_file(encrypted_cyphertext, output_path)
+        return encrypted_cyphertext
+
+    def decrypt(self, input_path, output_path, input_encoding='base64', output_encoding='base64'):
+        """
+        Decrypts the file on the path 'input_path' and places the result in the file
+        'output_path' which will be created if it doesn't exist yet.
+
+        :param output_encoding: The encoding type of the input-file
+        :param input_encoding: The encoding type of the output-file
+        :param input_path: Path of the file to be decrypted
+        :type input_path: str
+        :param output_path: Path to the file the output will be writen to
+        :type output_path: str
+        :return: The generated file's content
+        """
+        cyphertext = read_file(input_path)
+
+        decrypted_cyphertext = decode(cyphertext, input_encoding)
+        plain_text = self.crypt.decrypt(decrypted_cyphertext)
+        encoded_text = encode(plain_text, output_encoding)
+
+        write_file(encoded_text, output_path)
         return encoded_text
 
 
@@ -144,10 +230,13 @@ def write_file(obj, location):
     Write an object's binary data to a file
     :param obj:
     :param location: Path to the file
-    :return: None
     """
-    with open(location, mode="wb") as file_stream:
-        file_stream.write(obj)
+    try:
+        with open(location, mode="wb") as file_stream:
+            file_stream.write(obj)
+            return True
+    except (OSError, IOError):
+        raise ValueError("Could not write to file: " + location)
 
 
 def read_file(location):
@@ -156,8 +245,11 @@ def read_file(location):
     :param location: Path to the file
     :return: data
     """
-    with open(location, mode="rb") as file_stream:
-        return file_stream.read()
+    try:
+        with open(location, mode="rb") as file_stream:
+            return file_stream.read()
+    except (OSError, IOError):
+        raise ValueError("Could not read file: " + location)
 
 
 def decode(obj, decoder='base64'):
@@ -209,5 +301,3 @@ def _assert_is_dir(loc):
     if os.path.exists(loc):
         if not os.path.isdir(loc):
             raise ValueError('%s must be a directory' % loc)
-    else:
-        os.makedirs(loc, 0o0755)
