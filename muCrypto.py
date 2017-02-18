@@ -5,6 +5,7 @@ pyNacl libraries
 
 import codecs
 import os
+from json import decoder
 
 from keyczar import keyczar
 from nacl import secret, utils, public
@@ -44,7 +45,7 @@ class SymetricCrypterKcz(object):
 
         plain_input = decode(input_str, input_encoding)
 
-        cyphertext = self.crypt.Encrypt(plain_input)
+        cyphertext = self.crypt.Encrypt(plain_input, encoder=None)
         encoded_cyphertext = encode(cyphertext, output_encoding)
 
         write_file(encoded_cyphertext, output_path)
@@ -68,7 +69,7 @@ class SymetricCrypterKcz(object):
 
         decrypted_cyphertext = decode(cyphertext, input_encoding)
 
-        plain_text = self.crypt.Decrypt(decrypted_cyphertext)
+        plain_text = self.crypt.Decrypt(decrypted_cyphertext, decoder=None)
 
         encoded_text = encode(plain_text, output_encoding)
 
@@ -235,8 +236,8 @@ def write_file(obj, location):
         with open(location, mode="wb") as file_stream:
             file_stream.write(obj)
             return True
-    except (OSError, IOError):
-        raise ValueError("Could not write to file: " + location)
+    except (OSError, IOError) as root_err:
+        raise ValueError("Could not write to file: " + location, {"root_error": root_err})
 
 
 def read_file(location):
@@ -248,8 +249,8 @@ def read_file(location):
     try:
         with open(location, mode="rb") as file_stream:
             return file_stream.read()
-    except (OSError, IOError):
-        raise ValueError("Could not read file: " + location)
+    except (OSError, IOError) as root_err:
+        raise ValueError("Could not read file: " + location, {"root_error": root_err})
 
 
 def decode(obj, decoder='base64'):

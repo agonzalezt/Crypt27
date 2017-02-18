@@ -12,12 +12,10 @@ class TestSymetricCrypterKcz(unittest.TestCase):
         expected = muCrypto.read_file(r'rsc/original_text.base64')
 
         student_crypter.encrypt(r'rsc/original_text.base64',
-                                r'rsc/cifrado_sckcz.base64',
-                                input_encoding=None)
+                                r'rsc/cifrado_sckcz.base64', input_encoding=None)
 
         student_crypter.decrypt(r'rsc/cifrado_sckcz.base64',
-                                r'rsc/descifrado_sckcz.base64',
-                                output_encoding=None)
+                                r'rsc/descifrado_sckcz.base64', output_encoding=None)
 
         actual = muCrypto.read_file(r'rsc/descifrado_sckcz.base64')
 
