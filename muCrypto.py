@@ -1,11 +1,11 @@
 """
 This module contains encapsutions of the keyczar and
 pyNacl libraries
+ValueErrors are risen when incorrect inputs are given
 """
 
 import codecs
 import os
-from json import decoder
 
 from keyczar import keyczar
 from nacl import secret, utils, public
