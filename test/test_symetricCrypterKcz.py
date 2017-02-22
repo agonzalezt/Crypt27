@@ -18,5 +18,5 @@ class TestSymetricCrypterKcz(unittest.TestCase):
                                 r'rsc/descifrado_sckcz.base64', output_encoding=None)
 
         actual = muCrypto.read_file(r'rsc/descifrado_sckcz.base64')
-
+        print actual, '=', expected
         self.assertEqual(expected, actual, "Encrypting and decrypting does not recreate original input")
