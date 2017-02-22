@@ -41,9 +41,9 @@ class SymetricCrypterKcz(object):
         :return: The generated file's content
         """
 
-        input_str = read_file(input_path)
+        input_bytes = read_file(input_path)
 
-        plain_input = decode(input_str, input_encoding)
+        plain_input = decode(input_bytes, input_encoding)
 
         cyphertext = self.crypt.Encrypt(plain_input, encoder=None)
         encoded_cyphertext = encode(cyphertext, output_encoding)
@@ -67,9 +67,9 @@ class SymetricCrypterKcz(object):
 
         cyphertext = read_file(input_path)
 
-        decrypted_cyphertext = decode(cyphertext, input_encoding)
+        decoded_cyphertext = decode(cyphertext, input_encoding)
 
-        plain_text = self.crypt.Decrypt(decrypted_cyphertext, decoder=None)
+        plain_text = self.crypt.Decrypt(decoded_cyphertext, decoder=None)
 
         encoded_text = encode(plain_text, output_encoding)
 
@@ -83,9 +83,7 @@ class SymetricCrypterNaCl(object):
     pyNaCl library's SecretBox class. Accepts encodings found in
     codecs module.
     """
-    key_location = r'keys_and_files/texto_descifrado_paso2_keyczar.base64'
-
-    def __init__(self, key_location=None, decoder='base64'):
+    def __init__(self, key_location, decoder='base64'):
         """
         Instantiates a SymetricCrypterNaCl object
 
@@ -94,11 +92,9 @@ class SymetricCrypterNaCl(object):
         :param decoder: The encoding of the key's file
         :type decoder: str
         """
-        if key_location is None:
-            key_location = self.key_location
         key = read_file(key_location)
-        key = decode(key, decoder)
-        self.crypt = secret.SecretBox(key)
+        decoded_key = decode(key, decoder)
+        self.crypt = secret.SecretBox(decoded_key)
 
     def encrypt(self, input_path, output_path, input_encoding='base64', output_encoding='base64'):
         """
@@ -113,16 +109,16 @@ class SymetricCrypterNaCl(object):
         :type output_path: str
         :return: The generated file's content
         """
-        input_str = read_file(input_path)
+        input_bytes = read_file(input_path)
 
-        plain_input = decode(input_str, input_encoding)
+        plain_input = decode(input_bytes, input_encoding)
 
         nonce = utils.random(secret.SecretBox.NONCE_SIZE)
         cyphertext = self.crypt.encrypt(plain_input, nonce)
-        encrypted_cyphertext = encode(cyphertext, output_encoding)
+        encoded_cyphertext = encode(cyphertext, output_encoding)
 
-        write_file(encrypted_cyphertext, output_path)
-        return encrypted_cyphertext
+        write_file(encoded_cyphertext, output_path)
+        return encoded_cyphertext
 
     def decrypt(self, input_path, output_path, input_encoding='base64', output_encoding='base64'):
         """
@@ -138,9 +134,9 @@ class SymetricCrypterNaCl(object):
         :return: The generated file's content
         """
         cyphertext = read_file(input_path)
-        decrypted_cyphertext = decode(cyphertext, input_encoding)
+        decoded_cyphertext = decode(cyphertext, input_encoding)
 
-        plain_text = self.crypt.decrypt(decrypted_cyphertext)
+        plain_text = self.crypt.decrypt(decoded_cyphertext)
 
         encoded_text = encode(plain_text, output_encoding)
 
@@ -169,12 +165,12 @@ class AsymetricCrypterNaCl(object):
         :type pub_k_encoding: str
         """
         priv_k_str = read_file(priv_k_path)
-        priv_k_str = decode(priv_k_str, priv_k_encoding)
-        priv_k = public.PrivateKey(priv_k_str)
+        dec_priv_k_str = decode(priv_k_str, priv_k_encoding)
+        priv_k = public.PrivateKey(dec_priv_k_str)
 
         pub_k_str = read_file(pub_k_path)
-        pub_k_str = decode(pub_k_str, pub_k_encoding)
-        pub_k = public.PublicKey(pub_k_str)
+        dec_pub_k_str = decode(pub_k_str, pub_k_encoding)
+        pub_k = public.PublicKey(dec_pub_k_str)
 
         self.crypt = public.Box(priv_k, pub_k)
 
@@ -192,16 +188,16 @@ class AsymetricCrypterNaCl(object):
         :return: The generated file's content
         """
 
-        input_str = read_file(input_path)
+        input_bytes = read_file(input_path)
 
-        plain_input = decode(input_str, input_encoding)
+        plain_input = decode(input_bytes, input_encoding)
 
         nonce = utils.random(secret.SecretBox.NONCE_SIZE)
         cyphertext = self.crypt.encrypt(plain_input, nonce)
-        encrypted_cyphertext = encode(cyphertext, output_encoding)
+        encoded_cyphertext = encode(cyphertext, output_encoding)
 
-        write_file(encrypted_cyphertext, output_path)
-        return encrypted_cyphertext
+        write_file(encoded_cyphertext, output_path)
+        return encoded_cyphertext
 
     def decrypt(self, input_path, output_path, input_encoding='base64', output_encoding='base64'):
         """
